@@ -9,20 +9,12 @@ import { useLocalSearchParams } from 'expo-router'
 import { useColloquiumsByFilter, useAddColloquium } from '../../../src/hooks/useColloquium'
 import { Ionicons } from '@expo/vector-icons'
 import { StyleSheet, useUnistyles } from 'react-native-unistyles'
+import { YEARS, SESSIONS, STUDY_YEARS } from '../../../src/constants/utils'
 
 
 
-const YEARS = Array.from({ length: 2025 - 2010 + 1 }, (_, i) => 2025 - i)
-const SESSIONS = [
-    { id: 'Winter', label: 'Zimowa' },
-    { id: 'Summer', label: 'Letnia' }
-] as const
 
-const STUDY_YEARS = [
-    { id: 1, label: 'I' },
-    { id: 2, label: 'II' },
-    { id: 3, label: 'III' }
-] as const
+
 
 const SubjectScreen = () => {
     const { id: subject } = useLocalSearchParams<{ id: string }>()
