@@ -1,24 +1,22 @@
 import { StyleSheet } from 'react-native-unistyles'
 import { themes } from './theme'
+import { BREAKPOINTS } from '../../utils'
 
-export const breakpoints = {
-    xs: 0,
-    sm: 380,
-    md: 576,
-    lg: 768,
-    xl: 992
-} as const
+
+
 
 StyleSheet.configure({
     settings: {
         initialTheme: 'light',
     },
-    breakpoints,
+    breakpoints: BREAKPOINTS,
     themes
 })
 
+
 type AppThemes = typeof themes
-type AppBreakpoints = typeof breakpoints
+type AppBreakpoints = typeof BREAKPOINTS
+
 
 declare module 'react-native-unistyles' {
     export interface UnistylesThemes extends AppThemes { }

@@ -10,7 +10,7 @@ import Animated, {
 
 import { Drawer } from 'expo-router/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { universityData, Direction } from '../../src/constants/universityData';
+import { universityData, Direction } from '../../utils';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';

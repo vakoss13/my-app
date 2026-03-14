@@ -1,7 +1,7 @@
 import '../../src/styles/unistyles'
 import React, { useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { universityData } from '../../src/constants/universityData';
+import { universityData } from '../../utils';
 import { useNavigation } from 'expo-router';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { SafeAreaView } from 'react-native-safe-area-context';
