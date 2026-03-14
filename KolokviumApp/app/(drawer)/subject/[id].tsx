@@ -9,7 +9,7 @@ import { useLocalSearchParams } from 'expo-router'
 import { useColloquiumsByFilter, useAddColloquium } from '../../../src/hooks/useColloquium'
 import { Ionicons } from '@expo/vector-icons'
 import { StyleSheet, useUnistyles } from 'react-native-unistyles'
-import { YEARS, SESSIONS, STUDY_YEARS } from '../../../src/constants/utils'
+import { YEARS, SESSIONS, STUDY_YEARS } from '../../../utils'
 
 
 
