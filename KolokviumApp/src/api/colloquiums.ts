@@ -1,4 +1,4 @@
-import { supabase } from '../constants/supabase'
+import { supabase } from '../config/supabase'
 
 export const getColloquiumsByFilter = async (subject: string, year: number, session: string, studyYear: number) => {
     const { data, error } = await supabase

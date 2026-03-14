@@ -1,98 +1,283 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { theme } from '../../src/styles/theme';
-import { universityData } from '../../src/constants/universityData';
-import { useNavigation } from 'expo-router';
-import { DrawerNavigationProp } from '@react-navigation/drawer';
+import '../../src/styles/unistyles'
+import React, { useState, useCallback, useMemo } from 'react'
+import { View, Text, ActivityIndicator, ScrollView, Image, TouchableOpacity, Platform, StatusBar } from 'react-native'
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker'
+import { useColloquium } from '../../src/hooks/useColloquium'
+import { StyleSheet, useUnistyles } from 'react-native-unistyles'
 
-export default function Dashboard() {
-    const navigation = useNavigation<DrawerNavigationProp<any>>();
+export default function HomeScreen() {
+    const [selectedDate, setSelectedDate] = useState(new Date())
+    const [showPicker, setShowPicker] = useState(false)
+    const { data, isLoading } = useColloquium(selectedDate)
+    const { theme } = useUnistyles()
+
+    const formattedDate = useMemo(() => selectedDate.toLocaleDateString('pl-PL', {
+        day: 'numeric',
+        month: 'long'
+    }), [selectedDate])
+
+    const formattedYear = useMemo(() => selectedDate.getFullYear(), [selectedDate])
+
+    const onDateChange = useCallback((event: DateTimePickerEvent, date?: Date) => {
+        if (Platform.OS === 'android') setShowPicker(false)
+        if (date) setSelectedDate(date)
+    }, [])
+
+    const handleOpenPicker = useCallback(() => setShowPicker(true), [])
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+
             <View style={styles.header}>
-                <Text style={styles.greeting}>Cześć! 👋</Text>
-                <Text style={styles.subtext}>Wybierz kierunek w menu bocznym</Text>
+                <View style={styles.headerTop}>
+                    <Text style={styles.brandName}>Colloquium</Text>
+                    <View style={styles.dot} />
+                </View>
+
+                <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleOpenPicker}
+                    style={styles.dateSelector}
+                >
+                    <View>
+                        <Text style={styles.dateValue}>
+                            {formattedDate}
+                        </Text>
+                        <Text style={styles.yearValue}>{formattedYear}</Text>
+                    </View>
+                    <View style={styles.calendarIconBox}>
+                        <Text style={{ fontSize: 20 }}>📅</Text>
+                    </View>
+                </TouchableOpacity>
             </View>
 
-            <View style={styles.grid}>
-                {universityData.map((direction) => (
-                    <TouchableOpacity
-                        key={direction.id}
-                        style={styles.card}
-                        onPress={() => navigation.openDrawer()}
-                    >
-                        <View style={styles.iconContainer}>
-                            <Text style={styles.icon}>{direction.icon}</Text>
+            {showPicker && (
+                <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={onDateChange}
+                    accentColor={theme.colors.primary}
+                />
+            )}
+
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                {isLoading ? (
+                    <View style={styles.center}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                        <Text style={styles.loadingText}>Ładowanie danych...</Text>
+                    </View>
+                ) : data ? (
+                    <View style={styles.mainCard}>
+                        <View style={styles.imageContainer}>
+                            <Image
+                                source={{ uri: data.image_url }}
+                                style={styles.image}
+                                resizeMode="cover"
+                            />
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>Live</Text>
+                            </View>
                         </View>
-                        <Text style={styles.cardTitle}>{direction.name}</Text>
-                        <Text style={styles.cardSub}>{direction.subjects.length} przedmiotów</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-        </ScrollView>
-    );
+
+                        <View style={styles.cardBody}>
+                            <Text style={styles.cardCategory}>MATERIAŁY DNIA</Text>
+                            <Text style={styles.cardTitle}>{data.title}</Text>
+                            <View style={styles.divider} />
+                            <Text style={styles.cardDescription}>
+                                Specjalnie dla Ciebie wyselekcjonowane materiały na dzisiaj. 
+                                Do dzieła!
+                            </Text>
+
+                            <TouchableOpacity style={styles.readButton}>
+                                <Text style={styles.readButtonText}>Otwórz materiał</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.emptyState}>
+                        <View style={styles.emptyCircle}>
+                            <Text style={{ fontSize: 40 }}>🌑</Text>
+                        </View>
+                        <Text style={styles.emptyTitle}>Brak materiałów</Text>
+                        <Text style={styles.emptySub}>Spróbuj wybrać inną datę</Text>
+                    </View>
+                )}
+            </ScrollView>
+        </View>
+    )
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
-    },
-    content: {
-        padding: 25,
+        backgroundColor: theme.colors.background
     },
     header: {
-        marginBottom: 30,
-        marginTop: 10,
+        backgroundColor: theme.colors.white,
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        paddingBottom: 25,
+        paddingHorizontal: 25,
+        borderBottomLeftRadius: theme.radius.xl,
+        borderBottomRightRadius: theme.radius.xl,
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.08,
+        shadowRadius: 20,
+        elevation: 12,
     },
-    greeting: {
+    headerTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    brandName: {
+        fontSize: 12,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+        color: theme.colors.textSecondary,
+    },
+    dot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: theme.colors.dot,
+        marginLeft: 4,
+    },
+    dateSelector: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    dateValue: {
         fontSize: 32,
         fontWeight: '800',
         color: theme.colors.text,
     },
-    subtext: {
+    yearValue: {
         fontSize: 16,
-        color: theme.colors.textSecondary,
-        marginTop: 5,
+        color: theme.colors.textMuted,
+        fontWeight: '600',
     },
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-    },
-    card: {
-        width: '47%',
-        backgroundColor: theme.colors.card,
-        borderRadius: 24,
-        padding: 20,
-        marginBottom: 20,
-        shadowColor: theme.colors.shadow,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 15,
-        elevation: 6,
-    },
-    iconContainer: {
-        width: 50,
-        height: 50,
+    calendarIconBox: {
+        width: 54,
+        height: 54,
         backgroundColor: theme.colors.secondary,
-        borderRadius: 15,
+        borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 15,
     },
-    icon: {
-        fontSize: 24,
+    scrollContent: {
+        padding: 20,
+        paddingBottom: 40,
+    },
+    mainCard: {
+        backgroundColor: theme.colors.card,
+        borderRadius: 40,
+        overflow: 'hidden',
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 15 },
+        shadowOpacity: 0.12,
+        shadowRadius: 25,
+        elevation: 10,
+    },
+    imageContainer: {
+        position: 'relative',
+    },
+    image: {
+        width: '100%',
+        height: 420,
+    },
+    badge: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 20,
+    },
+    badgeText: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: theme.colors.primary,
+        textTransform: 'uppercase',
+    },
+    cardBody: {
+        padding: 25,
+    },
+    cardCategory: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: theme.colors.primary,
+        letterSpacing: 1.5,
+        marginBottom: 8,
     },
     cardTitle: {
-        fontSize: 14,
+        fontSize: 28,
         fontWeight: '800',
         color: theme.colors.text,
+        lineHeight: 34,
     },
-    cardSub: {
-        fontSize: 11,
+    divider: {
+        width: 45,
+        height: 5,
+        backgroundColor: theme.colors.primary,
+        borderRadius: 3,
+        marginVertical: 18,
+    },
+    cardDescription: {
+        fontSize: 15,
+        color: theme.colors.textSecondary,
+        lineHeight: 24,
+        marginBottom: 25,
+    },
+    readButton: {
+        backgroundColor: theme.colors.accent,
+        paddingVertical: 18,
+        borderRadius: 22,
+        alignItems: 'center',
+    },
+    readButtonText: {
+        color: theme.colors.white,
+        fontWeight: '700',
+        fontSize: 16,
+    },
+    center: {
+        marginTop: 100,
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 15,
         color: theme.colors.textMuted,
-        marginTop: 4,
+        fontWeight: '500',
     },
-});
+    emptyState: {
+        marginTop: 80,
+        alignItems: 'center',
+    },
+    emptyCircle: {
+        width: 110,
+        height: 110,
+        backgroundColor: theme.colors.border,
+        borderRadius: 55,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 25,
+    },
+    emptyTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: theme.colors.textSecondary,
+    },
+    emptySub: {
+        fontSize: 15,
+        color: theme.colors.textMuted,
+        marginTop: 8,
+    },
+}))

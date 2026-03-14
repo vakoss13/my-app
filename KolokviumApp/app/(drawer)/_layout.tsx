@@ -1,67 +1,137 @@
-import React, { useState } from 'react';
+import '../../src/styles/unistyles'
+import React, { useState, useCallback } from 'react';
+import Animated, { 
+    useAnimatedStyle, 
+    useSharedValue, 
+    withTiming, 
+    interpolate,
+    Extrapolation
+} from 'react-native-reanimated';
+
 import { Drawer } from 'expo-router/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { theme } from '../../src/styles/theme';
 import { universityData, Direction } from '../../src/constants/universityData';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles'
 
 const AccordionItem = ({ direction }: { direction: Direction }) => {
     const [expanded, setExpanded] = useState(false);
     const router = useRouter();
+    const [contentHeight, setContentHeight] = useState(0);
+    
+    // Shared value for animation (0 = closed, 1 = open)
+    const animation = useSharedValue(0);
+
+    const toggleExpanded = useCallback(() => {
+        const toValue = expanded ? 0 : 1;
+        animation.value = withTiming(toValue, { duration: 300 });
+        setExpanded(!expanded);
+    }, [expanded]);
+
+    const handleSubjectPress = useCallback((subjectId: string) => {
+        router.push(`/(drawer)/subject/${subjectId}`);
+    }, [router]);
+
+    // Animated styles
+    const bodyStyle = useAnimatedStyle(() => {
+        return {
+            height: interpolate(
+                animation.value,
+                [0, 1],
+                [0, contentHeight],
+                Extrapolation.CLAMP
+            ),
+            opacity: interpolate(
+                animation.value,
+                [0, 1],
+                [0, 1],
+                Extrapolation.CLAMP
+            ),
+        };
+    });
+
+    const arrowStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{
+                rotate: `${interpolate(animation.value, [0, 1], [0, 90])}deg`
+            }]
+        };
+    });
 
     return (
-        <View>
+        <View style={styles.accordionContainer}>
             <TouchableOpacity
                 style={styles.drawerItem}
-                onPress={() => setExpanded(!expanded)}
+                onPress={toggleExpanded}
                 activeOpacity={0.7}
             >
                 <View style={styles.drawerItemLeft}>
                     <Text style={styles.drawerItemIcon}>{direction.icon}</Text>
                     <Text style={styles.drawerItemText}>{direction.name}</Text>
                 </View>
-                <Text style={styles.arrowIcon}>{expanded ? '▼' : '▶'}</Text>
+                <Animated.View style={arrowStyle}>
+                    <Text style={styles.arrowIcon}>▶</Text>
+                </Animated.View>
             </TouchableOpacity>
 
-            {expanded && (
-                <View style={styles.submenu}>
+            <Animated.View style={[styles.submenuContainer, bodyStyle]}>
+                <View 
+                    style={styles.submenuContent}
+                    onLayout={(e) => {
+                        const height = e.nativeEvent.layout.height;
+                        if (height > 0 && height !== contentHeight) {
+                            setContentHeight(height);
+                        }
+                    }}
+                >
                     {direction.subjects.map(subject => (
                         <TouchableOpacity
                             key={subject.id}
                             style={styles.subItem}
-                            onPress={() => {
-                                router.push(`/subject/${subject.id}`);
-                            }}
+                            onPress={() => handleSubjectPress(subject.id)}
                         >
                             <Text style={styles.subItemIcon}>{subject.icon}</Text>
                             <Text style={styles.subItemText}>{subject.name}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
-            )}
+            </Animated.View>
         </View>
     );
 };
 
+
 function CustomDrawerContent(props: any) {
     const router = useRouter();
+    const handleNavigation = useCallback((path: string) => {
+        router.push(path as any);
+    }, [router]);
 
     return (
-        <DrawerContentScrollView {...props} style={{ backgroundColor: theme.colors.card }}>
+        <DrawerContentScrollView {...props} style={styles.drawerScroll}>
             <View style={styles.drawerHeader}>
                 <Text style={styles.drawerTitle}>UMCS Colloquium</Text>
             </View>
 
-            <TouchableOpacity style={styles.drawerItem} onPress={() => router.push('/(drawer)')}>
+            <TouchableOpacity style={styles.drawerItem} onPress={() => handleNavigation('/(drawer)')}>
                 <View style={styles.drawerItemLeft}>
-                    <Text style={styles.drawerItemIcon}>🏠</Text>
-                    <Text style={styles.drawerItemText}>Strona główna</Text>
+                    <Text style={styles.drawerItemIcon}>📅</Text>
+                    <Text style={styles.drawerItemText}>Aktualności</Text>
+                </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.drawerItem} onPress={() => handleNavigation('/(drawer)/kierunki')}>
+                <View style={styles.drawerItemLeft}>
+                    <Text style={styles.drawerItemIcon}>🏛️</Text>
+                    <Text style={styles.drawerItemText}>Kierunki</Text>
                 </View>
             </TouchableOpacity>
 
             <View style={styles.divider} />
+
+            <Text style={styles.sectionHeader}>WYDZIAŁY</Text>
 
             {universityData.map((direction) => (
                 <AccordionItem key={direction.id} direction={direction} />
@@ -71,6 +141,8 @@ function CustomDrawerContent(props: any) {
 }
 
 export default function DrawerLayout() {
+    const { theme } = useUnistyles()
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
@@ -82,24 +154,25 @@ export default function DrawerLayout() {
                     drawerStyle: { width: 320 },
                 }}
             >
-                <Drawer.Screen
-                    name="index"
-                    options={{
-                        title: 'Kierunki',
-                    }}
+                <Drawer.Screen 
+                    name="index" 
+                    options={{ title: 'Aktualności' }} 
                 />
-                <Drawer.Screen
-                    name="subject/[id]"
-                    options={{
-                        title: 'Materiały'
-                    }}
+                <Drawer.Screen 
+                    name="kierunki" 
+                    options={{ title: 'Kierunki' }} 
+                />
+                <Drawer.Screen 
+                    name="subject/[id]" 
+                    options={{ title: 'Materiały' }} 
                 />
             </Drawer>
         </GestureHandlerRootView>
     );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
+    drawerScroll: { backgroundColor: theme.colors.card },
     drawerHeader: {
         padding: 20,
         marginBottom: 10,
@@ -137,7 +210,20 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: theme.colors.textSecondary,
     },
-    submenu: {
+    sectionHeader: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: theme.colors.textMuted,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        letterSpacing: 1.5,
+    },
+    submenuContainer: {
+        overflow: 'hidden',
+    },
+    submenuContent: {
+        position: 'absolute',
+        width: '100%',
         backgroundColor: theme.colors.background,
         paddingVertical: 5,
     },
@@ -159,8 +245,12 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: theme.colors.shadow || '#eaeaea',
+        backgroundColor: theme.colors.border,
         marginVertical: 10,
         marginHorizontal: 20,
+    },
+    accordionContainer: {
+        overflow: 'hidden',
     }
-});
+}));
+
